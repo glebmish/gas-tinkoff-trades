@@ -331,8 +331,25 @@ function _GetTickerNameByFIGI(figi) {
   return [ticker,name]
 }
 
+function _GetFIGIByTickerName(ticker) {
+  const CACHE_KEY_PREFIX = 'figi_'
+  const ticker_cache_key = CACHE_KEY_PREFIX + ticker
+
+  const cached = CACHE.get(ticker)
+  if (cached != null)
+    return cached
+  const {instruments,total} = tinkoffClientV2._GetInstrumentBy('INSTRUMENT_ID_TYPE_TICKER', 'T+', ticker).instrument
+  if (total > 0) {
+    const figi = instruments[0].figi
+    CACHE.put(ticker_cache_key, figi, CACHE_MAX_AGE)
+    return figi
+  } else {
+    return null
+  }
+}
+
 function TI_GetLastPrice(ticker) {
-  const figi = _getFigiByTicker(ticker)    // Tinkoff API v1 function !!!
+  const figi = _GetFIGIByTickerName(ticker)
   if (figi) {
     const data = tinkoffClientV2._GetLastPrices([figi])
     return Number(data.lastPrices[0].price.units) + data.lastPrices[0].price.nano/1000000000
